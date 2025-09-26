@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 // Importar rutas
-import UsuarioRoutes from "./routes/usuarioRoutes.js";
+import UsuarioRoutes from "./routes/UsuarioRoutes.js";
 import ProductoRoutes from "./routes/ProductoRoutes.js";
 import CategoriaRoutes from "./routes/CategoriaRoutes.js";
 import AuthRoutes from "./routes/AuthRoutes.js";
