@@ -6,39 +6,31 @@ import {
   obtenerUsuario,
   actualizarUsuario,
   eliminarUsuario,
+  obtenerPerfil,
+  actualizarPerfil,
 } from "../controllers/UsuarioController.js";
 
 import { authMiddleware, authorizeRoles } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-// 📌 Registro (público, sin autenticación)
+// 📌 Registro público
 router.post("/", crearUsuario);
 
-// 📌 Solo admin puede listar todos
+// 📌 Admin: listar todos los usuarios
 router.get("/", authMiddleware, authorizeRoles("admin"), listarUsuarios);
 
-// 📌 Obtener usuario por ID
-// - Admin puede ver cualquiera
-// - Un usuario solo puede ver su propio perfil
-router.get("/:id", authMiddleware, (req, res, next) => {
-  if (req.usuario.rol !== "admin" && req.usuario.id !== req.params.id) {
-    return res.status(403).json({ message: "No tienes permisos para ver este usuario" });
-  }
-  next();
-}, obtenerUsuario);
+// 📌 Usuario autenticado: ver su perfil
+router.get("/perfil", authMiddleware, obtenerPerfil);
 
-// 📌 Actualizar usuario
-// - Admin puede editar cualquiera
-// - Un usuario solo puede editar su propio perfil
-router.put("/:id", authMiddleware, (req, res, next) => {
-  if (req.usuario.rol !== "admin" && req.usuario.id !== req.params.id) {
-    return res.status(403).json({ message: "No tienes permisos para actualizar este usuario" });
-  }
-  next();
-}, actualizarUsuario);
+// 📌 Usuario autenticado: actualizar su perfil
+router.put("/perfil", authMiddleware, actualizarPerfil);
 
-// 📌 Eliminar usuario (solo admin)
+// 📌 Admin: ver cualquier usuario
+router.get("/:id", authMiddleware, authorizeRoles("admin"), obtenerUsuario);
+
+// 📌 Admin: actualizar o eliminar cualquier usuario
+router.put("/:id", authMiddleware, authorizeRoles("admin"), actualizarUsuario);
 router.delete("/:id", authMiddleware, authorizeRoles("admin"), eliminarUsuario);
 
 export default router;

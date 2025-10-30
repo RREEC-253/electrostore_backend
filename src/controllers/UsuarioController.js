@@ -56,3 +56,31 @@ export const eliminarUsuario = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+// 🔹 Ver perfil del usuario autenticado
+export const obtenerPerfil = async (req, res) => {
+  try {
+    const usuario = await Usuario.findById(req.usuario.id).select("-contraseña");
+    if (!usuario) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+    res.json(usuario);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener el perfil" });
+  }
+};
+
+// 🔹 Actualizar perfil del usuario autenticado
+export const actualizarPerfil = async (req, res) => {
+  try {
+    const usuarioActualizado = await Usuario.findByIdAndUpdate(
+      req.usuario.id,
+      req.body,
+      { new: true }
+    ).select("-contraseña");
+
+    res.json(usuarioActualizado);
+  } catch (error) {
+    res.status(500).json({ message: "Error al actualizar el perfil" });
+  }
+};
+
