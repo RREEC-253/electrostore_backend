@@ -2,6 +2,8 @@
 import Carrito from "../models/Carrito.js";
 import Producto from "../models/Producto.js";
 
+
+
 // Obtener carrito del usuario
 export const obtenerCarrito = async (req, res) => {
   try {
@@ -22,6 +24,7 @@ export const obtenerCarrito = async (req, res) => {
 // Agregar producto al carrito
 export const agregarProducto = async (req, res) => {
   try {
+
     const { productoId, cantidad } = req.body;
     let carrito = await Carrito.findOne({ usuarioId: req.usuario.id });
 
