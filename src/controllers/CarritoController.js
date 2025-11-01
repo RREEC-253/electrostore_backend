@@ -2,20 +2,38 @@
 import Carrito from "../models/Carrito.js";
 import Producto from "../models/Producto.js";
 
-
+// 🛠️ Helper: calcula el precio final visible al cliente (la misma función que usas en Producto)
+const calcularPrecioFinal = (producto) => {
+  if (producto.oferta && producto.porcentajeOferta > 0 && producto.precioOferta) {
+    return producto.precioOferta;
+  }
+  return producto.precioVenta;
+};
 
 // Obtener carrito del usuario
 export const obtenerCarrito = async (req, res) => {
   try {
     let carrito = await Carrito.findOne({ usuarioId: req.usuario.id })
-      .populate("productos.productoId", "nombre precio");
+      .populate("productos.productoId", "nombre precioVenta precioOferta oferta porcentajeOferta imagen descripcion categorias stock");
 
     // 🚀 Si no existe (caso raro), lo creamos vacío
     if (!carrito) {
       carrito = await Carrito.create({ usuarioId: req.usuario.id, productos: [] });
     }
 
-    res.json(carrito);
+    // 🔄 Agregar precioFinal calculado a cada producto
+    const carritoConPrecioFinal = {
+      ...carrito.toObject(),
+      productos: carrito.productos.map(item => ({
+        ...item.toObject(),
+        productoId: {
+          ...item.productoId.toObject(),
+          precioFinal: calcularPrecioFinal(item.productoId)
+        }
+      }))
+    };
+
+    res.json(carritoConPrecioFinal);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -24,7 +42,6 @@ export const obtenerCarrito = async (req, res) => {
 // Agregar producto al carrito
 export const agregarProducto = async (req, res) => {
   try {
-
     const { productoId, cantidad } = req.body;
     let carrito = await Carrito.findOne({ usuarioId: req.usuario.id });
 
@@ -43,7 +60,23 @@ export const agregarProducto = async (req, res) => {
     }
 
     await carrito.save();
-    res.json(carrito);
+    
+    // 🔄 Populate y agregar precioFinal
+    const carritoActualizado = await Carrito.findById(carrito._id)
+      .populate("productos.productoId", "nombre precioVenta precioOferta oferta porcentajeOferta imagen descripcion categorias stock");
+
+    const carritoConPrecioFinal = {
+      ...carritoActualizado.toObject(),
+      productos: carritoActualizado.productos.map(item => ({
+        ...item.toObject(),
+        productoId: {
+          ...item.productoId.toObject(),
+          precioFinal: calcularPrecioFinal(item.productoId)
+        }
+      }))
+    };
+    
+    res.json(carritoConPrecioFinal);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -67,7 +100,23 @@ export const actualizarCantidad = async (req, res) => {
     producto.cantidad = cantidad;
 
     await carrito.save();
-    res.json(carrito);
+    
+    // 🔄 Populate y agregar precioFinal
+    const carritoActualizado = await Carrito.findById(carrito._id)
+      .populate("productos.productoId", "nombre precioVenta precioOferta oferta porcentajeOferta imagen descripcion categorias stock");
+
+    const carritoConPrecioFinal = {
+      ...carritoActualizado.toObject(),
+      productos: carritoActualizado.productos.map(item => ({
+        ...item.toObject(),
+        productoId: {
+          ...item.productoId.toObject(),
+          precioFinal: calcularPrecioFinal(item.productoId)
+        }
+      }))
+    };
+    
+    res.json(carritoConPrecioFinal);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -87,7 +136,23 @@ export const eliminarProducto = async (req, res) => {
     );
 
     await carrito.save();
-    res.json(carrito);
+    
+    // 🔄 Populate y agregar precioFinal
+    const carritoActualizado = await Carrito.findById(carrito._id)
+      .populate("productos.productoId", "nombre precioVenta precioOferta oferta porcentajeOferta imagen descripcion categorias stock");
+
+    const carritoConPrecioFinal = {
+      ...carritoActualizado.toObject(),
+      productos: carritoActualizado.productos.map(item => ({
+        ...item.toObject(),
+        productoId: {
+          ...item.productoId.toObject(),
+          precioFinal: calcularPrecioFinal(item.productoId)
+        }
+      }))
+    };
+    
+    res.json(carritoConPrecioFinal);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -104,7 +169,23 @@ export const vaciarCarrito = async (req, res) => {
 
     carrito.productos = [];
     await carrito.save();
-    res.json(carrito);
+    
+    // 🔄 Populate y agregar precioFinal
+    const carritoActualizado = await Carrito.findById(carrito._id)
+      .populate("productos.productoId", "nombre precioVenta precioOferta oferta porcentajeOferta imagen descripcion categorias stock");
+
+    const carritoConPrecioFinal = {
+      ...carritoActualizado.toObject(),
+      productos: carritoActualizado.productos.map(item => ({
+        ...item.toObject(),
+        productoId: {
+          ...item.productoId.toObject(),
+          precioFinal: calcularPrecioFinal(item.productoId)
+        }
+      }))
+    };
+    
+    res.json(carritoConPrecioFinal);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
