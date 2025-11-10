@@ -41,6 +41,10 @@ productoSchema.pre("save", function (next) {
     this.precioVenta =
       this.precioCompra + (this.precioCompra * this.margenGanancia) / 100;
   }
+  if (this.oferta === false) {
+    this.porcentajeOferta = 0;  // o null, según prefieras
+    this.precioOferta = null;
+  }
 
   // Calcular precioOferta si hay oferta activa
   if (this.oferta && this.porcentajeOferta > 0) {
@@ -54,38 +58,55 @@ productoSchema.pre("save", function (next) {
 });
 
 // =============================
-// 🔁 findOneAndUpdate
+//  findOneAndUpdate
 // =============================
 productoSchema.pre("findOneAndUpdate", function (next) {
   const update = this.getUpdate();
 
-  // Si cambian los precios base
-  const precioCompra =
-    update.precioCompra ?? update.$set?.precioCompra;
-  const margenGanancia =
-    update.margenGanancia ?? update.$set?.margenGanancia;
+  // Usar $set si no existe
+  if (!update.$set) {
+    update.$set = {};
+  }
+
+  // Acceder a los valores
+  const precioCompra = update.precioCompra ?? update.$set?.precioCompra;
+  const margenGanancia = update.margenGanancia ?? update.$set?.margenGanancia;
   const oferta = update.oferta ?? update.$set?.oferta;
-  const porcentajeOferta =
-    update.porcentajeOferta ?? update.$set?.porcentajeOferta;
+  const porcentajeOferta = update.porcentajeOferta ?? update.$set?.porcentajeOferta;
 
-  // Calcular precioVenta
+  let precioVentaCalculado = null;
+
+  //  CALCULAR PRECIO VENTA SI TENEMOS LOS DATOS
   if (precioCompra !== undefined && margenGanancia !== undefined) {
-    const precioVenta =
-      precioCompra + (precioCompra * margenGanancia) / 100;
-    update.precioVenta = precioVenta;
+    precioVentaCalculado = precioCompra + (precioCompra * margenGanancia) / 100;
+    update.$set.precioVenta = precioVentaCalculado;
+   // console.log(' precioVenta calculado:', precioVentaCalculado);
+  }
 
-    // Calcular precioOferta
-    if (oferta && porcentajeOferta > 0) {
-      update.precioOferta =
-        precioVenta - (precioVenta * porcentajeOferta) / 100;
-    } else {
-      update.precioOferta = null;
+  //  MANEJO DE OFERTAS
+  if (oferta === false) {
+    // Si se desactiva la oferta, limpiar campos
+    update.$set.porcentajeOferta = 0;
+    update.$set.precioOferta = null;
+    //console.log(' Oferta desactivada - limpiando campos');
+  }
+  else if (oferta === true && porcentajeOferta > 0) {
+    // Si hay oferta activa y porcentaje, calcular precioOferta
+    const precioVentaParaOferta = precioVentaCalculado || this._update.$set?.precioVenta;
+    if (precioVentaParaOferta) {
+      const precioOfertaCalculado = precioVentaParaOferta - (precioVentaParaOferta * porcentajeOferta) / 100;
+      update.$set.precioOferta = precioOfertaCalculado;
+      //console.log(' precioOferta calculado:', precioOfertaCalculado);
     }
+  }
+  else if (oferta === true && (porcentajeOferta === 0 || porcentajeOferta === null)) {
+    // Si oferta está activa pero sin porcentaje, limpiar precioOferta
+    update.$set.precioOferta = null;
   }
 
   this.setUpdate(update);
+  console.log('📤 Update final:', update);
   next();
 });
-
 const Producto = mongoose.model("Producto", productoSchema);
 export default Producto;

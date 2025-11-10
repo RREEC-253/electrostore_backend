@@ -6,7 +6,9 @@ import {
   actualizarProducto,
   eliminarProducto,
   productosOfertas,
-  productosDestacados, // 👈 nuevo import
+  buscarProductos,
+  productosDestacados,
+  buscarSugerencias // 👈 nuevo import
 } from "../controllers/ProductoController.js";
 
 import { authMiddleware, authorizeRoles } from "../middleware/authMiddleware.js";
@@ -21,6 +23,8 @@ router.get("/", listarProductos);              // Listar productos
 router.get("/ofertas", productosOfertas);      // Productos en oferta activa
 router.get("/destacados", productosDestacados); // 👈 NUEVA: productos destacados
 router.get("/:id", obtenerProducto);           // Obtener producto por ID
+router.get("/buscar/avanzado", buscarProductos);
+router.get("/buscar/sugerencias", buscarSugerencias);
 
 //
 // ======================================================
