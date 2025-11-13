@@ -1,0 +1,27 @@
+### 🧪 Crear pago con Yape (modo sandbox)
+POST http://localhost:5000/api/payments/create
+Content-Type: application/json
+
+{
+  "monto": 5.00,
+  "descripcion": "Compra de prueba con Yape",
+  "emailUsuario": "test_user_123@testuser.com"
+}
+
+###
+
+### 🧾 Simular webhook de Mercado Pago (confirmación de pago)
+POST http://localhost:5000/api/payments/webhook
+Content-Type: application/json
+
+{
+  "type": "payment",
+  "data": {
+    "id": "1234567890" // <-- reemplaza con el ID real que te devolvió la creación del pago
+  }
+}
+
+###
+
+### 🔍 Consultar pagos guardados (opcional)
+GET http://localhost:5000/api/payments

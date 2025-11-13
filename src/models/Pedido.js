@@ -11,7 +11,7 @@ const pedidoSchema = new mongoose.Schema(
     direccionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Direccion",
-      required: true,
+      required: false, // Opcional temporalmente - se puede agregar después
     },
     productos: [
       {
@@ -33,12 +33,24 @@ const pedidoSchema = new mongoose.Schema(
     ],
     estado: {
       type: String,
-      enum: ["pendiente", "pagado", "enviado", "entregado", "cancelado"],
+      enum: ["pendiente", "pagado", "pendiente_pago", "pago_rechazado", "enviado", "entregado", "cancelado"],
       default: "pendiente",
     },
     total: {
       type: Number,
       required: true,
+    },
+    paymentId: {
+      type: String,
+      default: null,
+    },
+    preferenceId: {
+      type: String,
+      default: null,
+    },
+    fechaPago: {
+      type: Date,
+      default: null,
     },
   },
   { timestamps: true }

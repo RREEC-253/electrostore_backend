@@ -348,4 +348,30 @@ export const buscarSugerencias = async (req, res) => {
   }
 };
 
+// 🆕 Obtener productos por ID de categoría
+export const obtenerProductosPorCategoria = async (req, res) => {
+  try {
+    const { idCategoria } = req.params;
+
+    // Buscar productos por categoría
+    const productos = await Producto.find({
+      categorias: idCategoria,
+      activo: true,
+    })
+      .populate("categorias", "nombre") // opcional
+      .lean();
+
+    // ✅ Calcular precioFinal (como en destacados)
+    const productosConPrecioFinal = productos.map((p) => ({
+      ...p,
+      precioFinal: p.oferta && p.precioOferta ? p.precioOferta : p.precioVenta,
+    }));
+
+    res.status(200).json(productosConPrecioFinal);
+  } catch (error) {
+    console.error("❌ Error al obtener productos por categoría:", error);
+    res.status(500).json({ error: "Error del servidor" });
+  }
+};
+
 

@@ -2,17 +2,17 @@
 import express from "express";
 import { authMiddleware, authorizeRoles } from "../middleware/authMiddleware.js";
 import {
-  crearPedido,
   obtenerPedidos,
   obtenerPedido,
   actualizarPedido,
   eliminarPedido,
+  crearPedidoDesdeCarrito,
 } from "../controllers/PedidoController.js";
 
 const router = express.Router();
 
 // 📌 Crear pedido (cliente autenticado)
-router.post("/", authMiddleware, crearPedido);
+router.post("/checkout", authMiddleware, crearPedidoDesdeCarrito);
 
 // 📌 Listar todos → solo admin
 router.get("/", authMiddleware, authorizeRoles("admin"), obtenerPedidos);
