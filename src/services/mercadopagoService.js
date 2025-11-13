@@ -22,6 +22,14 @@ export const createPreference = async (preferenceData) => {
     console.log("MercadoPago -> createPreference request:", JSON.stringify(preferenceData, null, 2));
     const response = await preference.create({ body: preferenceData });
     console.log("MercadoPago -> createPreference response:", response && response.body ? response.body : response);
+    console.log("MercadoPago -> Response structure:", {
+      hasResponse: !!response,
+      hasBody: !!response?.body,
+      hasId: !!response?.body?.id,
+      hasInitPoint: !!response?.body?.init_point,
+      status: response?.status,
+      statusCode: response?.statusCode
+    });
     return response;
   } catch (error) {
     console.error("MercadoPago -> createPreference error (detailed):", {

@@ -78,13 +78,37 @@ export const crearPreferencia = async (req, res) => {
 
     const preference = await createPreference(preferenceData);
 
-    // Validación defensiva
-    const preferenceBody = preference?.body || {};
+    // Validación defensiva - la respuesta puede estar en preference.body o directamente en preference
+    // El SDK de MercadoPago devuelve la respuesta en response.body
+    const preferenceBody = preference?.body || preference || {};
     const preferenceId = preferenceBody.id;
-    const initPoint = preferenceBody.init_point;
+    const initPoint = preferenceBody.init_point || preferenceBody.sandbox_init_point;
 
-    if (!preferenceId || !initPoint) {
-      throw new Error('No se pudo crear la preferencia de pago');
+    // Log para debugging
+    console.log('🔍 Preference response structure:', {
+      hasBody: !!preference?.body,
+      hasDirect: !!preference?.id,
+      preferenceId: preferenceId || 'NOT FOUND',
+      initPoint: initPoint || 'NOT FOUND',
+      allKeys: Object.keys(preferenceBody || {})
+    });
+
+    if (!preferenceId) {
+      console.error('❌ Preferencia creada pero falta ID:', {
+        preferenceStructure: preference,
+        preferenceBody: preferenceBody,
+        allKeys: Object.keys(preferenceBody || {})
+      });
+      throw new Error('No se pudo crear la preferencia de pago: falta el ID de la preferencia');
+    }
+
+    if (!initPoint) {
+      console.error('❌ Preferencia creada pero falta init_point:', {
+        preferenceId,
+        preferenceBody: preferenceBody,
+        availableKeys: Object.keys(preferenceBody || {})
+      });
+      throw new Error('No se pudo crear la preferencia de pago: falta el init_point');
     }
 
     // Guardar información de la preferencia en el pedido (opcional)
