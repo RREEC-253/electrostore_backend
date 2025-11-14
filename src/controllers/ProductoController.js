@@ -79,7 +79,16 @@ export const obtenerProducto = async (req, res) => {
 // Actualizar producto (solo admin)
 export const actualizarProducto = async (req, res) => {
   try {
-    const producto = await Producto.findByIdAndUpdate(req.params.id, req.body, {
+    // Filtrar campos que no deben actualizarse directamente
+    const { _id, id, __v, createdAt, ...updateData } = req.body;
+    
+    // Si viene _id o id como null o string "null", eliminarlo
+    if (updateData._id === null || updateData._id === 'null' || updateData.id === null || updateData.id === 'null') {
+      delete updateData._id;
+      delete updateData.id;
+    }
+
+    const producto = await Producto.findByIdAndUpdate(req.params.id, updateData, {
       new: true,             // devuelve el documento actualizado
       runValidators: true,   // valida los campos segun el schema
       context: 'query',      // necesario para que los hooks pre('findOneAndUpdate') funcionen bien
