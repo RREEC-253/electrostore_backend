@@ -1,11 +1,11 @@
-import PaymentModel from '../models/Payment.js';
-import Pedido from '../models/Pedido.js';
-import Carrito from '../models/Carrito.js';
+import PaymentModel from "../models/Payment.js";
+import Pedido from "../models/Pedido.js";
+import Carrito from "../models/Carrito.js";
 import {
   createPreference,
   processWebhook,
   getMerchantOrder,
-} from '../services/mercadopagoService.js';
+} from "../services/mercadopagoService.js";
 
 /**
  * Crea una preferencia de pago para Checkout PRO
@@ -26,29 +26,28 @@ export const crearPreferencia = async (req, res) => {
     if (!transaction_amount || transaction_amount <= 0) {
       return res
         .status(400)
-        .json({ message: 'El monto debe ser mayor a 0' });
+        .json({ message: "El monto debe ser mayor a 0" });
     }
     if (!payer?.email) {
       return res
         .status(400)
-        .json({ message: 'El email del pagador es requerido' });
+        .json({ message: "El email del pagador es requerido" });
     }
     if (!pedidoId) {
       return res
         .status(400)
-        .json({ message: 'El ID del pedido es requerido' });
+        .json({ message: "El ID del pedido es requerido" });
     }
 
     // Verificar que el pedido existe
     const pedido = await Pedido.findById(pedidoId);
     if (!pedido) {
-      return res.status(404).json({ message: 'Pedido no encontrado' });
+      return res.status(404).json({ message: "Pedido no encontrado" });
     }
 
     // Obtener la URL base del backend para los callbacks
     const baseUrl =
-      process.env.BACKEND_URL ||
-      req.protocol + '://' + req.get('host');
+      process.env.BACKEND_URL || req.protocol + "://" + req.get("host");
 
     // Construir URLs de callback
     const callbackUrls = {
@@ -82,14 +81,14 @@ export const crearPreferencia = async (req, res) => {
         email: payer.email,
         name:
           payer.name ||
-          (payer.email ? payer.email.split('@')[0] : ''),
-        surname: payer.surname || '',
+          (payer.email ? payer.email.split("@")[0] : ""),
+        surname: payer.surname || "",
       },
       back_urls: callbackUrls,
-      auto_return: 'approved', // Redirige automáticamente cuando el pago es aprobado
+      auto_return: "approved", // Redirige automáticamente cuando el pago es aprobado
       external_reference: pedidoId.toString(), // Referencia externa para identificar el pedido
       notification_url: `${baseUrl}/api/payments/webhook`, // URL del webhook
-      statement_descriptor: 'ELECTROSTORE', // Descripción que aparece en el resumen de tarjeta
+      statement_descriptor: "ELECTROSTORE", // Descripción que aparece en el resumen de tarjeta
       metadata: {
         pedido_id: pedidoId.toString(),
         usuario_id: req.usuario.id.toString(),
@@ -103,37 +102,36 @@ export const crearPreferencia = async (req, res) => {
     const preferenceBody = preference?.body || preference || {};
     const preferenceId = preferenceBody.id;
     const initPoint =
-      preferenceBody.init_point ||
-      preferenceBody.sandbox_init_point;
+      preferenceBody.init_point || preferenceBody.sandbox_init_point;
 
     // Log para debugging
-    console.log('Preference response structure:', {
+    console.log("Preference response structure:", {
       hasBody: !!preference?.body,
       hasDirect: !!preference?.id,
-      preferenceId: preferenceId || 'NOT FOUND',
-      initPoint: initPoint || 'NOT FOUND',
+      preferenceId: preferenceId || "NOT FOUND",
+      initPoint: initPoint || "NOT FOUND",
       allKeys: Object.keys(preferenceBody || {}),
     });
 
     if (!preferenceId) {
-      console.error('Preferencia creada pero falta ID:', {
+      console.error("Preferencia creada pero falta ID:", {
         preferenceStructure: preference,
         preferenceBody: preferenceBody,
         allKeys: Object.keys(preferenceBody || {}),
       });
       throw new Error(
-        'No se pudo crear la preferencia de pago: falta el ID de la preferencia'
+        "No se pudo crear la preferencia de pago: falta el ID de la preferencia"
       );
     }
 
     if (!initPoint) {
-      console.error('Preferencia creada pero falta init_point:', {
+      console.error("Preferencia creada pero falta init_point:", {
         preferenceId,
         preferenceBody: preferenceBody,
         availableKeys: Object.keys(preferenceBody || {}),
       });
       throw new Error(
-        'No se pudo crear la preferencia de pago: falta el init_point'
+        "No se pudo crear la preferencia de pago: falta el init_point"
       );
     }
 
@@ -148,10 +146,10 @@ export const crearPreferencia = async (req, res) => {
       checkout_url: initPoint, // Alias para compatibilidad
     });
   } catch (error) {
-    console.error('Error creando preferencia de pago:', error);
+    console.error("Error creando preferencia de pago:", error);
 
     let errorMessage =
-      'Error al crear la preferencia de pago';
+      "Error al crear la preferencia de pago";
 
     // Manejo de errores de MercadoPago
     if (
@@ -169,7 +167,7 @@ export const crearPreferencia = async (req, res) => {
     res.status(400).json({
       message: errorMessage,
       error:
-        process.env.NODE_ENV === 'development'
+        process.env.NODE_ENV === "development"
           ? {
               message: error.message,
               cause: error.cause,
@@ -199,8 +197,7 @@ const upsertPaymentFromMP = async (paymentInfo) => {
     date_created,
   } = paymentInfo;
 
-  const pedidoId =
-    metadata?.pedido_id || external_reference;
+  const pedidoId = metadata?.pedido_id || external_reference;
 
   if (!pedidoId) {
     console.warn(
@@ -219,7 +216,7 @@ const upsertPaymentFromMP = async (paymentInfo) => {
       pedidoId,
       usuarioId: metadata?.usuario_id || null,
       transaction_amount: transaction_amount || 0,
-      payment_method: payment_method_id || 'unknown',
+      payment_method: payment_method_id || "unknown",
       payment_type: payment_type_id || null,
       payer_email: payer?.email || null,
       date_created: date_created
@@ -264,9 +261,9 @@ const updatePedidoFromPaymentStatus = async ({
     return;
   }
 
-  if (status === 'approved') {
+  if (status === "approved") {
     await Pedido.findByIdAndUpdate(pedidoId, {
-      estado: 'pagado',
+      estado: "pagado",
       paymentId,
       fechaPago: date_approved
         ? new Date(date_approved)
@@ -279,23 +276,18 @@ const updatePedidoFromPaymentStatus = async ({
       { $set: { productos: [] } }
     );
 
-    console.log(
-      `Pedido ${pedidoId} pagado y carrito vaciado`
-    );
-  } else if (status === 'pending') {
+    console.log(`Pedido ${pedidoId} pagado y carrito vaciado`);
+  } else if (status === "pending") {
     await Pedido.findByIdAndUpdate(pedidoId, {
-      estado: 'pendiente_pago',
+      estado: "pendiente_pago",
       paymentId,
     });
     console.log(
       `Pedido ${pedidoId} pendiente de pago (status: pending)`
     );
-  } else if (
-    status === 'rejected' ||
-    status === 'cancelled'
-  ) {
+  } else if (status === "rejected" || status === "cancelled") {
     await Pedido.findByIdAndUpdate(pedidoId, {
-      estado: 'pago_rechazado',
+      estado: "pago_rechazado",
       paymentId,
     });
     console.log(
@@ -306,56 +298,81 @@ const updatePedidoFromPaymentStatus = async ({
 
 /**
  * Webhook para recibir notificaciones de MercadoPago
- * Soporta type: "payment" y type: "merchant_order"
+ * Soporta:
+ * - Formato nuevo: body JSON { type, data: { id } }
+ * - Formato clásico: query params ?topic=payment&id=123
  */
 export const receiveWebhook = async (req, res) => {
   try {
-    const { type, data } = req.body;
+    // Log completo para ver el formato real
+    console.log("Webhook bruto:", {
+      method: req.method,
+      headers: req.headers,
+      query: req.query,
+      body: req.body,
+    });
 
-    console.log('Webhook recibido:', { type, data });
+    // Detectar tipo de notificación desde body o query
+    const notificationType =
+      req.body.type || req.query.type || req.query.topic;
 
-    // Notificación de un pago puntual
-    if (type === 'payment') {
-      const paymentId = data?.id;
+    console.log("Webhook tipo detectado:", notificationType);
+
+    // ===== Notificación de pago puntual =====
+    if (notificationType === "payment") {
+      const paymentId =
+        req.body?.data?.id ||
+        req.query["data.id"] ||
+        req.query.id ||
+        (req.query.resource
+          ? req.query.resource.split("/").pop()
+          : null);
 
       if (!paymentId) {
-        console.warn('Webhook payment sin payment ID');
-        return res.status(200).send('OK');
+        console.warn("Webhook payment sin payment ID", {
+          body: req.body,
+          query: req.query,
+        });
+        return res.status(200).send("OK");
       }
 
-      // Obtener información actualizada del pago
       const paymentInfo = await processWebhook(paymentId);
       if (!paymentInfo) {
         console.warn(
           `No se pudo obtener información del pago ${paymentId}`
         );
-        return res.status(200).send('OK');
+        return res.status(200).send("OK");
       }
 
-      const upsertResult = await upsertPaymentFromMP(
-        paymentInfo
-      );
+      const upsertResult = await upsertPaymentFromMP(paymentInfo);
       if (upsertResult) {
         await updatePedidoFromPaymentStatus(upsertResult);
       }
     }
 
-    // Notificación de una merchant order (puede agrupar varios pagos)
-    if (type === 'merchant_order') {
-      const merchantOrderId = data?.id;
+    // ===== Notificación de merchant_order (puede agrupar varios pagos) =====
+    if (notificationType === "merchant_order") {
+      const merchantOrderId =
+        req.body?.data?.id ||
+        req.query["data.id"] ||
+        req.query.id;
 
       if (!merchantOrderId) {
-        console.warn('Webhook merchant_order sin id');
-        return res.status(200).send('OK');
+        console.warn("Webhook merchant_order sin id", {
+          body: req.body,
+          query: req.query,
+        });
+        return res.status(200).send("OK");
       }
 
-      const merchantOrderInfo =
-        await getMerchantOrder(merchantOrderId);
+      const merchantOrderInfo = await getMerchantOrder(
+        merchantOrderId
+      );
       if (!merchantOrderInfo) {
         console.warn(
           `No se pudo obtener información de merchant_order ${merchantOrderId}`
         );
-        return res.status(200).send('OK');
+        return res.status(200).send("OK");
       }
 
       const payments = merchantOrderInfo.payments || [];
@@ -377,12 +394,18 @@ export const receiveWebhook = async (req, res) => {
       }
     }
 
+    if (!notificationType) {
+      console.warn(
+        "Webhook sin tipo reconocido (ni body.type ni query.topic):",
+        { body: req.body, query: req.query }
+      );
+    }
+
     // Siempre responder 200 OK a MercadoPago para evitar reintentos
-    return res.status(200).send('OK');
+    return res.status(200).send("OK");
   } catch (error) {
-    console.error('Error en webhook:', error);
-    // Aun así responder OK para que MercadoPago no reintente
-    return res.status(200).send('OK');
+    console.error("Error en webhook:", error);
+    return res.status(200).send("OK");
   }
 };
 
@@ -405,7 +428,7 @@ export const verificarPago = async (req, res) => {
 
     if (!paymentId) {
       return res.status(400).json({
-        message: 'El ID del pago es requerido',
+        message: "El ID del pago es requerido",
       });
     }
 
@@ -413,7 +436,7 @@ export const verificarPago = async (req, res) => {
     if (!paymentInfo) {
       return res
         .status(404)
-        .json({ message: 'Pago no encontrado en MercadoPago' });
+        .json({ message: "Pago no encontrado en MercadoPago" });
     }
 
     res.json({
@@ -424,11 +447,11 @@ export const verificarPago = async (req, res) => {
       date_approved: paymentInfo.date_approved,
     });
   } catch (error) {
-    console.error('Error verificando pago:', error);
+    console.error("Error verificando pago:", error);
     res.status(500).json({
-      message: 'Error al verificar el pago',
+      message: "Error al verificar el pago",
       error:
-        process.env.NODE_ENV === 'development'
+        process.env.NODE_ENV === "development"
           ? error.message
           : undefined,
     });
