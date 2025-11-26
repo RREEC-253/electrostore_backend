@@ -206,36 +206,36 @@ const upsertPaymentFromMP = async (paymentInfo) => {
     return null;
   }
 
-  let pagoDB = await PaymentModel.findOne({ paymentId: id });
+  const update = {
+    // siempre se actualiza
+    status,
+    status_detail: status_detail || null,
+    date_approved: date_approved ? new Date(date_approved) : null,
+  };
 
-  if (!pagoDB) {
-    pagoDB = new PaymentModel({
-      paymentId: id,
-      status,
-      status_detail: status_detail || null,
-      pedidoId,
-      usuarioId: metadata?.usuario_id || null,
-      transaction_amount: transaction_amount || 0,
-      payment_method: payment_method_id || "unknown",
-      payment_type: payment_type_id || null,
-      payer_email: payer?.email || null,
-      date_created: date_created
-        ? new Date(date_created)
-        : new Date(),
-      date_approved: date_approved
-        ? new Date(date_approved)
-        : null,
-    });
-  } else {
-    pagoDB.status = status;
-    pagoDB.status_detail =
-      status_detail || pagoDB.status_detail;
-    if (date_approved) {
-      pagoDB.date_approved = new Date(date_approved);
+  const onInsert = {
+    paymentId: id,
+    pedidoId,
+    usuarioId: metadata?.usuario_id || null,
+    transaction_amount: transaction_amount || 0,
+    payment_method: payment_method_id || "unknown",
+    payment_type: payment_type_id || null,
+    payer_email: payer?.email || null,
+    date_created: date_created ? new Date(date_created) : new Date(),
+  };
+
+  // upsert atómico: si existe lo actualiza, si no lo crea
+  const pagoDB = await PaymentModel.findOneAndUpdate(
+    { paymentId: id },
+    {
+      $set: update,
+      $setOnInsert: onInsert,
+    },
+    {
+      upsert: true,
+      new: true,
     }
-  }
-
-  await pagoDB.save();
+  );
 
   return {
     pedidoId,
@@ -244,6 +244,7 @@ const upsertPaymentFromMP = async (paymentInfo) => {
     date_approved,
   };
 };
+
 
 /**
  * Helper: actualiza el estado del Pedido según el estado del pago.
