@@ -66,8 +66,16 @@ export const createPreference = async (preferenceData) => {
 export const processWebhook = async (paymentId) => {
   try {
     const result = await payment.get({ id: paymentId });
-    console.log("Pago obtenido desde MercadoPago:", result);
-    return result.body; // contiene toda la información del pago
+    console.log("Pago obtenido desde MercadoPago (raw):", result);
+
+    // Algunos SDK/devices devuelven { body, status, headers }, otros devuelven el body directamente
+    const body = result?.body || result;
+    if (!body || typeof body !== "object") {
+      console.warn("processWebhook: respuesta sin body válido:", result);
+      return null;
+    }
+
+    return body; // contiene toda la información del pago
   } catch (error) {
     console.error("Error al obtener pago en processWebhook:", error);
     return null;
@@ -82,8 +90,19 @@ export const processWebhook = async (paymentId) => {
 export const getMerchantOrder = async (merchantOrderId) => {
   try {
     const result = await merchantOrder.get({ merchantOrderId });
-    console.log("MerchantOrder obtenida desde MercadoPago:", result);
-    return result.body;
+    console.log("MerchantOrder obtenida desde MercadoPago (raw):", result);
+
+    // Igual que arriba: usar result.body si existe, sino result directo
+    const body = result?.body || result;
+    if (!body || typeof body !== "object") {
+      console.warn(
+        "getMerchantOrder: respuesta sin body válido:",
+        result
+      );
+      return null;
+    }
+
+    return body;
   } catch (error) {
     console.error("Error al obtener merchant order:", error);
     return null;
