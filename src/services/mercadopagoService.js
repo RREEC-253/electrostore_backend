@@ -1,16 +1,25 @@
 // src/services/mercadopagoService.js
-import { MercadoPagoConfig, Preference, Payment as MP_Payment } from "mercadopago";
+import {
+  MercadoPagoConfig,
+  Preference,
+  Payment as MP_Payment,
+  MerchantOrder,
+} from "mercadopago";
 import dotenv from "dotenv";
 dotenv.config();
 
 // Configuración de MercadoPago
 // IMPORTANTE: En producción, usa MERCADOPAGO_ACCESS_TOKEN con tu token de producción (APP_USR-...)
 const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN_SANDBOX || "TEST-..."
+  accessToken:
+    process.env.MERCADOPAGO_ACCESS_TOKEN ||
+    process.env.MP_ACCESS_TOKEN_SANDBOX ||
+    "TEST-...",
 });
 
 const preference = new Preference(client);
 const payment = new MP_Payment(client);
+const merchantOrder = new MerchantOrder(client);
 
 /**
  * Crea una preferencia de pago para Checkout PRO
@@ -19,16 +28,22 @@ const payment = new MP_Payment(client);
  */
 export const createPreference = async (preferenceData) => {
   try {
-    console.log("MercadoPago -> createPreference request:", JSON.stringify(preferenceData, null, 2));
+    console.log(
+      "MercadoPago -> createPreference request:",
+      JSON.stringify(preferenceData, null, 2)
+    );
     const response = await preference.create({ body: preferenceData });
-    console.log("MercadoPago -> createPreference response:", response && response.body ? response.body : response);
+    console.log(
+      "MercadoPago -> createPreference response:",
+      response && response.body ? response.body : response
+    );
     console.log("MercadoPago -> Response structure:", {
       hasResponse: !!response,
       hasBody: !!response?.body,
       hasId: !!response?.body?.id,
       hasInitPoint: !!response?.body?.init_point,
       status: response?.status,
-      statusCode: response?.statusCode
+      statusCode: response?.statusCode,
     });
     return response;
   } catch (error) {
@@ -55,6 +70,22 @@ export const processWebhook = async (paymentId) => {
     return result.body; // contiene toda la información del pago
   } catch (error) {
     console.error("Error al obtener pago en processWebhook:", error);
+    return null;
+  }
+};
+
+/**
+ * Obtiene información de una merchant order por su ID
+ * @param {string|number} merchantOrderId - ID de la merchant order
+ * @returns {Promise<Object|null>} - Información de la merchant order o null si hay error
+ */
+export const getMerchantOrder = async (merchantOrderId) => {
+  try {
+    const result = await merchantOrder.get({ merchantOrderId });
+    console.log("MerchantOrder obtenida desde MercadoPago:", result);
+    return result.body;
+  } catch (error) {
+    console.error("Error al obtener merchant order:", error);
     return null;
   }
 };
