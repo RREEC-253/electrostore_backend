@@ -73,15 +73,70 @@ export const crearPedidoDesdeCarrito = async (req, res) => {
 };
 
 
+// Helper para construir filtros dinámicos
+const buildPedidoFilters = (query) => {
+  const filtros = {};
+
+  // Por defecto, solo pedidos pagados
+  if (query.estado) {
+    filtros.estado = query.estado;
+  } else {
+    filtros.estado = "pagado";
+  }
+
+  // Filtro por rango de fechas (createdAt)
+  const rangoFechas = {};
+  if (query.desde) {
+    const desde = new Date(query.desde);
+    if (!isNaN(desde.getTime())) {
+      rangoFechas.$gte = desde;
+    }
+  }
+  if (query.hasta) {
+    const hasta = new Date(query.hasta);
+    if (!isNaN(hasta.getTime())) {
+      rangoFechas.$lte = hasta;
+    }
+  }
+  if (Object.keys(rangoFechas).length > 0) {
+    filtros.createdAt = rangoFechas;
+  }
+
+  // Opcional: filtrar por usuarioId si algún día lo quieres
+  if (query.usuarioId) {
+    filtros.usuarioId = query.usuarioId;
+  }
+
+  return filtros;
+};
+
 // Listar pedidos
 export const obtenerPedidos = async (req, res) => {
   try {
-    const pedidos = await Pedido.find()
-      .populate("usuarioId", "nombres apellidos email")
-      .populate("direccionId")
-      .populate("productos.productoId", "nombre precio");
-    res.json(pedidos);
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = parseInt(req.query.limit || "20", 10);
+
+    const filtros = buildPedidoFilters(req.query);
+
+    const [pedidos, total] = await Promise.all([
+      Pedido.find(filtros)
+        .populate("usuarioId", "nombres apellidos email")
+        .populate("direccionId")
+        .populate("productos.productoId", "nombre precio")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Pedido.countDocuments(filtros),
+    ]);
+
+    res.json({
+      total,
+      page,
+      limit,
+      data: pedidos,
+    });
   } catch (error) {
+    console.error("Error al obtener pedidos:", error);
     res.status(500).json({ message: error.message });
   }
 };
