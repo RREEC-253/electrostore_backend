@@ -2,25 +2,6 @@
 import Pedido from "../models/Pedido.js";
 import Carrito from "../models/Carrito.js";
 
-
-
-/*
-// Crear pedido
-export const crearPedido = async (req, res) => {
-  try {
-    const pedido = new Pedido(req.body);
-    await pedido.save();
-    res.status(201).json(pedido);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};*/
-
-
-// Crear pedido desde el carrito (sin vaciar el carrito todavía)
-
-// src/controllers/pedidoController.js
-
 export const crearPedidoDesdeCarrito = async (req, res) => {
   try {
     const usuarioId = req.usuario.id;
@@ -109,6 +90,81 @@ const buildPedidoFilters = (query) => {
 
   return filtros;
 };
+
+
+// Helper para filtros de pedidos de un usuario (cliente)
+const buildPedidoFiltersCliente = (query, usuarioId) => {
+  const filtros = { usuarioId };
+
+  // Estados que mostramos al cliente
+  const estadosVisibles = [
+    "pendiente_pago",
+    "pagado",
+    "pago_rechazado",
+  ];
+
+  // Si viene estado y está dentro de los visibles, filtramos por ese estado
+  if (query.estado && estadosVisibles.includes(query.estado)) {
+    filtros.estado = query.estado;
+  } else {
+    // Por defecto: solo esos tres estados
+    filtros.estado = { $in: estadosVisibles };
+  }
+
+  // Rango de fechas (createdAt)
+  const rangoFechas = {};
+  if (query.desde) {
+    const desde = new Date(query.desde);
+    if (!isNaN(desde.getTime())) {
+      rangoFechas.$gte = desde;
+    }
+  }
+  if (query.hasta) {
+    const hasta = new Date(query.hasta);
+    if (!isNaN(hasta.getTime())) {
+      rangoFechas.$lte = hasta;
+    }
+  }
+  if (Object.keys(rangoFechas).length > 0) {
+    filtros.createdAt = rangoFechas;
+  }
+
+  return filtros;
+};
+
+
+// Listar pedidos del cliente autenticado ("mis pedidos")
+export const obtenerMisPedidos = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = parseInt(req.query.limit || "20", 10);
+
+    const filtros = buildPedidoFiltersCliente(req.query, req.usuario._id);
+
+    const [pedidos, total] = await Promise.all([
+      Pedido.find(filtros)
+        .populate("usuarioId", "nombres apellidos email")
+        .populate("direccionId")
+        .populate("productos.productoId", "nombre precio")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Pedido.countDocuments(filtros),
+    ]);
+
+    res.json({
+      total,
+      page,
+      limit,
+      data: pedidos,
+    });
+  } catch (error) {
+    console.error("Error al obtener mis pedidos:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
 
 // Listar pedidos
 export const obtenerPedidos = async (req, res) => {
