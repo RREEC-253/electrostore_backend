@@ -33,9 +33,18 @@ const pedidoSchema = new mongoose.Schema(
     ],
     estado: {
       type: String,
-      enum: ["pendiente", "pagado", "pendiente_pago", "pago_rechazado", "enviado", "entregado", "cancelado"],
-      default: "pendiente",
+      enum: [
+        "pendiente",
+        "pagado",
+        "pendiente_pago",
+        "pago_rechazado",
+        "enviado",
+        "entregado",
+        "cancelado",
+      ],
+      default: "pendiente_pago", // antes: "pendiente"
     },
+
     total: {
       type: Number,
       required: true,

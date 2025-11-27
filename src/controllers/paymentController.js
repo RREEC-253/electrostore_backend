@@ -64,19 +64,19 @@ export const crearPreferencia = async (req, res) => {
       items:
         productos && productos.length > 0
           ? productos.map((p) => ({
-              title: p.nombre || `Producto ${p.productoId}`,
-              quantity: p.cantidad || 1,
-              unit_price: Number(p.precioUnitario || 0),
-            }))
+            title: p.nombre || `Producto ${p.productoId}`,
+            quantity: p.cantidad || 1,
+            unit_price: Number(p.precioUnitario || 0),
+          }))
           : [
-              {
-                title:
-                  description ||
-                  `Compra - Pedido #${pedidoId}`,
-                quantity: 1,
-                unit_price: Number(transaction_amount),
-              },
-            ],
+            {
+              title:
+                description ||
+                `Compra - Pedido #${pedidoId}`,
+              quantity: 1,
+              unit_price: Number(transaction_amount),
+            },
+          ],
       payer: {
         email: payer.email,
         name:
@@ -169,10 +169,10 @@ export const crearPreferencia = async (req, res) => {
       error:
         process.env.NODE_ENV === "development"
           ? {
-              message: error.message,
-              cause: error.cause,
-              status: error.status,
-            }
+            message: error.message,
+            cause: error.cause,
+            status: error.status,
+          }
           : undefined,
     });
   }
@@ -271,20 +271,19 @@ const updatePedidoFromPaymentStatus = async ({
         : new Date(),
     });
 
-    // Vaciar carrito cuando el pago es aprobado
     await Carrito.findOneAndUpdate(
       { usuarioId: pedido.usuarioId },
       { $set: { productos: [] } }
     );
 
     console.log(`Pedido ${pedidoId} pagado y carrito vaciado`);
-  } else if (status === "pending") {
+  } else if (status === "pending" || status === "in_process") {
     await Pedido.findByIdAndUpdate(pedidoId, {
       estado: "pendiente_pago",
       paymentId,
     });
     console.log(
-      `Pedido ${pedidoId} pendiente de pago (status: pending)`
+      `Pedido ${pedidoId} pendiente de pago (status: ${status})`
     );
   } else if (status === "rejected" || status === "cancelled") {
     await Pedido.findByIdAndUpdate(pedidoId, {
@@ -296,6 +295,7 @@ const updatePedidoFromPaymentStatus = async ({
     );
   }
 };
+
 
 /**
  * Webhook para recibir notificaciones de MercadoPago

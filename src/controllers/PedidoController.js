@@ -17,8 +17,8 @@ export const crearPedido = async (req, res) => {
 };*/
 
 
- // Crear pedido desde el carrito (sin vaciar el carrito todavía)
- 
+// Crear pedido desde el carrito (sin vaciar el carrito todavía)
+
 // src/controllers/pedidoController.js
 
 export const crearPedidoDesdeCarrito = async (req, res) => {
@@ -50,14 +50,15 @@ export const crearPedidoDesdeCarrito = async (req, res) => {
       0
     );
 
-    // ✅ dirección opcional temporalmente
+    //  dirección opcional temporalmente
     const pedido = new Pedido({
       usuarioId,
       direccionId: req.body.direccionId || null,
       productos: productosPedido, // Agregar productos al pedido
       total,
-      estado: "pendiente",
+      estado: "pendiente_pago", // ya refleja que está pendiente de pago
     });
+
 
     await pedido.save();
 
