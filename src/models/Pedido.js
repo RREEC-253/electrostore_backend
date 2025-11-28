@@ -11,7 +11,7 @@ const pedidoSchema = new mongoose.Schema(
     direccionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Direccion",
-      required: false, // Opcional temporalmente - se puede agregar después
+      required: false,
     },
     productos: [
       {
@@ -42,13 +42,19 @@ const pedidoSchema = new mongoose.Schema(
         "entregado",
         "cancelado",
       ],
-      default: "pendiente_pago", // antes: "pendiente"
+      default: "pendiente_pago",
     },
-
     total: {
       type: Number,
       required: true,
     },
+
+    // Ganancia total del pedido (en dinero), calculada al aprobar el pago
+    gananciaTotal: {
+      type: Number,
+      default: 0,
+    },
+
     paymentId: {
       type: String,
       default: null,

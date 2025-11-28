@@ -255,7 +255,11 @@ const updatePedidoFromPaymentStatus = async ({
   paymentId,
   date_approved,
 }) => {
-  const pedido = await Pedido.findById(pedidoId);
+  // Cargar el pedido con productos poblados para calcular la ganancia
+  const pedido = await Pedido.findById(pedidoId).populate(
+    "productos.productoId",
+    "precioCompra"
+  );
 
   if (!pedido) {
     console.warn(`Pedido ${pedidoId} no encontrado en BD`);
@@ -263,20 +267,48 @@ const updatePedidoFromPaymentStatus = async ({
   }
 
   if (status === "approved") {
+    // Calcular ganancia total del pedido:
+    // ganancia por ítem = (precioUnitario - precioCompra) * cantidad
+    let gananciaTotal = 0;
+
+    for (const item of pedido.productos) {
+      const prodDoc = item.productoId;
+      const cantidad = item.cantidad || 0;
+      const precioUnitario = item.precioUnitario || 0;
+
+      const precioCompra =
+        prodDoc && typeof prodDoc.precioCompra === "number"
+          ? prodDoc.precioCompra
+          : 0;
+
+      const gananciaItem =
+        (precioUnitario - precioCompra) * cantidad;
+
+      gananciaTotal += gananciaItem;
+    }
+
+    const fechaPago = date_approved
+      ? new Date(date_approved)
+      : new Date();
+
     await Pedido.findByIdAndUpdate(pedidoId, {
       estado: "pagado",
       paymentId,
-      fechaPago: date_approved
-        ? new Date(date_approved)
-        : new Date(),
+      fechaPago,
+      gananciaTotal,
     });
 
+    // Vaciar carrito cuando el pago es aprobado
     await Carrito.findOneAndUpdate(
       { usuarioId: pedido.usuarioId },
       { $set: { productos: [] } }
     );
 
-    console.log(`Pedido ${pedidoId} pagado y carrito vaciado`);
+    console.log(
+      `Pedido ${pedidoId} pagado, gananciaTotal=${gananciaTotal.toFixed(
+        2
+      )} y carrito vaciado`
+    );
   } else if (status === "pending" || status === "in_process") {
     await Pedido.findByIdAndUpdate(pedidoId, {
       estado: "pendiente_pago",
@@ -295,6 +327,7 @@ const updatePedidoFromPaymentStatus = async ({
     );
   }
 };
+
 
 
 /**

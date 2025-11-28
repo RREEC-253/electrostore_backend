@@ -12,6 +12,7 @@ import PedidoRoutes from "./routes/PedidoRoutes.js";
 import DireccionRoutes from "./routes/DireccionRoutes.js";
 import CarritoRoutes from "./routes/CarritoRoutes.js";
 import paymentRoutes from "./routes/payments.js";
+import GananciasRoutes from "./routes/GananciasRoutes.js";
 
 dotenv.config();
 
@@ -33,6 +34,8 @@ app.use("/api/pedidos", PedidoRoutes);
 app.use("/api/direcciones", DireccionRoutes);
 app.use("/api/carrito", CarritoRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/ganancias", GananciasRoutes);
+
 
 app.get("/", (req, res) => {
   res.send("API ElectroStore funcionando 🚀");
