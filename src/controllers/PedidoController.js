@@ -88,6 +88,13 @@ const buildPedidoFilters = (query) => {
     filtros.usuarioId = query.usuarioId;
   }
 
+  if (query.codigo) {
+    const codigo = query.codigo.trim();
+    if (codigo) {
+      filtros.codigo = { $regex: codigo, $options: "i" };
+    }
+  }
+
   return filtros;
 };
 
