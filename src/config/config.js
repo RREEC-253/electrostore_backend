@@ -32,3 +32,15 @@ export const verificarRefreshToken = (token) => {
     return null; // inválido o expirado
   }
 };
+
+export const ZONAS_ENVIO = (process.env.DELIVERY_ZONAS || "")
+  .split(",")
+  .map((z) => z.trim())
+  .filter((z) => z.length > 0)
+  .map((z) => {
+    const [dep, prov] = z.split("|").map((p) => (p || "").trim().toLowerCase());
+    return {
+      departamento: dep,
+      provincia: prov,
+    };
+  });

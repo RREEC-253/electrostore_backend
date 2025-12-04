@@ -22,6 +22,7 @@ const direccionSchema = new mongoose.Schema(
     codigoPostal: { type: String },                           // opcional en Perú
     telefono: { type: String },                               // contacto para entrega
     principal: { type: Boolean, default: false },             // dirección por defecto
+    enZonaEnvio: { type: Boolean, default: false },          // Indica si está dentro de la(s) zona(s) de envío configuradas
   },
   { timestamps: true }
 );

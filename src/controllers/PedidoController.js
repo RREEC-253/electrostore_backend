@@ -31,14 +31,45 @@ export const crearPedidoDesdeCarrito = async (req, res) => {
       0
     );
 
-    //  dirección opcional temporalmente
+    const tipoEntrega = req.body.tipoEntrega || "recojo_tienda";
+    const direccionId = req.body.direccionId || null;
+
+    // Si es delivery, validar dirección
+    if (tipoEntrega === "delivery") {
+      if (!direccionId) {
+        return res.status(400).json({
+          message: "Debes seleccionar una dirección para delivery",
+        });
+      }
+
+      const direccion = await Direccion.findOne({
+        _id: direccionId,
+        usuarioId,
+      });
+
+      if (!direccion) {
+        return res.status(404).json({
+          message: "Dirección de entrega no encontrada",
+        });
+      }
+
+      if (!direccion.enZonaEnvio) {
+        return res.status(400).json({
+          message:
+            "Por ahora solo hacemos delivery dentro de las zonas disponibles.",
+        });
+      }
+    }
+
     const pedido = new Pedido({
       usuarioId,
-      direccionId: req.body.direccionId || null,
-      productos: productosPedido, // Agregar productos al pedido
+      direccionId,
+      productos: productosPedido,
       total,
-      estado: "pendiente_pago", // ya refleja que está pendiente de pago
+      estado: "pendiente_pago",
+      tipoEntrega,
     });
+
 
 
     await pedido.save();

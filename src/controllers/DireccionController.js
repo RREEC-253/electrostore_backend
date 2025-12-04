@@ -1,10 +1,32 @@
 // src/controllers/DireccionController.js
 import Direccion from "../models/Direccion.js";
+import { ZONAS_ENVIO } from "../config/config.js";
+
+
+const estaEnZonaEnvio = (departamento, provincia) => {
+  if (!departamento || !provincia) return false;
+  if (!ZONAS_ENVIO || ZONAS_ENVIO.length === 0) return false;
+
+  const dep = departamento.toLowerCase().trim();
+  const prov = provincia.toLowerCase().trim();
+
+  return ZONAS_ENVIO.some(
+    (z) =>
+      z.departamento === dep &&
+      z.provincia === prov
+  );
+};
 
 // Crear dirección
 export const crearDireccion = async (req, res) => {
   try {
     const data = { ...req.body, usuarioId: req.usuario.id };
+
+    // Calcular si está en zona de envío
+    data.enZonaEnvio = estaEnZonaEnvio(
+      data.departamento,
+      data.provincia
+    );
 
     // Si marcan como principal, desmarcamos otras
     if (data.principal === true) {
@@ -49,7 +71,6 @@ export const obtenerDireccion = async (req, res) => {
 // Actualizar dirección
 export const actualizarDireccion = async (req, res) => {
   try {
-    // Si actualizan a principal, desmarcamos las demás primero
     if (req.body.principal === true) {
       await Direccion.updateMany(
         { usuarioId: req.usuario.id, principal: true },
@@ -57,18 +78,32 @@ export const actualizarDireccion = async (req, res) => {
       );
     }
 
+    const updateData = { ...req.body };
+
+    // Si cambian departamento/provincia, recalculamos enZonaEnvio
+    if (updateData.departamento || updateData.provincia) {
+      const dep =
+        updateData.departamento ?? req.body.departamento;
+      const prov =
+        updateData.provincia ?? req.body.provincia;
+      updateData.enZonaEnvio = estaEnZonaEnvio(dep, prov);
+    }
+
     const dir = await Direccion.findOneAndUpdate(
       { _id: req.params.id, usuarioId: req.usuario.id },
-      req.body,
+      updateData,
       { new: true }
     );
 
-    if (!dir) return res.status(404).json({ message: "Dirección no encontrada" });
+    if (!dir) {
+      return res.status(404).json({ message: "Dirección no encontrada" });
+    }
     res.json(dir);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
+
 
 // Eliminar dirección
 export const eliminarDireccion = async (req, res) => {
@@ -106,3 +141,5 @@ export const marcarPrincipal = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+

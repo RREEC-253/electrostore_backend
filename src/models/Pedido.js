@@ -73,6 +73,11 @@ const pedidoSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    tipoEntrega: {
+      type: String,
+      enum: ["recojo_tienda", "delivery"],
+      default: "recojo_tienda",
+    },
   },
   { timestamps: true }
 );
@@ -90,6 +95,7 @@ pedidoSchema.pre("save", function (next) {
   }
   next();
 });
+
 
 
 export default mongoose.model("Pedido", pedidoSchema);
