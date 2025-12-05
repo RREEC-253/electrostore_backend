@@ -82,7 +82,7 @@ const pedidoSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-pedidoSchema.pre("save", function (next) {
+pedidoSchema.pre("validate", function (next) {
   if (!this.codigo) {
     const idStr = this._id.toString();
     const suffix = idStr.slice(-4).toUpperCase(); // últimos 4 chars del _id
