@@ -10,6 +10,37 @@ const calcularPrecioFinal = (producto) => {
   return producto.precioVenta;
 };
 
+// Helpers para bÇ§squedas tolerantes a tildes
+const accentGroups = {
+  a: "aáàäâãå",
+  e: "eéèëê",
+  i: "iíìïî",
+  o: "oóòöôõ",
+  u: "uúùüû",
+  n: "nñ",
+  c: "cç",
+};
+
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const buildAccentInsensitiveRegex = (text) => {
+  const escaped = escapeRegex(text);
+  let pattern = "";
+
+  for (const char of escaped) {
+    const lower = char.toLowerCase();
+    if (accentGroups[lower]) {
+      const variations = accentGroups[lower] + accentGroups[lower].toUpperCase();
+      const unique = Array.from(new Set(variations.split(""))).join("");
+      pattern += `[${unique}]`;
+    } else {
+      pattern += char;
+    }
+  }
+
+  return new RegExp(pattern, "i");
+};
+
 
 // Crear producto (solo admin)
 export const crearProducto = async (req, res) => {
@@ -35,7 +66,7 @@ export const listarProductos = async (req, res) => {
     let filter = {};
 
     if (nombre) {
-      filter.nombre = { $regex: nombre, $options: "i" };
+      filter.nombre = buildAccentInsensitiveRegex(nombre);
     }
 
     if (categoriaId) {
@@ -190,11 +221,12 @@ export const buscarProductos = async (req, res) => {
 
     // 🔎 BÚSQUEDA POR TEXTO MEJORADA - AHORA INCLUYE CATEGORÍAS
     if (q) {
-      escapedQuery = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      escapedQuery = q;
+      const accentRegex = buildAccentInsensitiveRegex(q);
       
       //  Buscar categorías que coincidan con el query
       const categoriasCoincidentes = await Categoria.find({
-        nombre: { $regex: escapedQuery, $options: "i" }
+        nombre: accentRegex
       }).select('_id');
 
       const categoriasIds = categoriasCoincidentes.map(cat => cat._id);
@@ -203,8 +235,8 @@ export const buscarProductos = async (req, res) => {
       
       //  Buscar productos que coincidan por nombre, SKU O categoría
       filter.$or = [
-        { nombre: { $regex: escapedQuery, $options: "i" } },
-        { codigoSKU: { $regex: escapedQuery, $options: "i" } }
+        { nombre: accentRegex },
+        { codigoSKU: { $regex: escapeRegex(q), $options: "i" } }
       ];
       
       //  Si se encontraron categorías, agregar búsqueda por categoría
@@ -292,21 +324,21 @@ export const buscarSugerencias = async (req, res) => {
     }
 
     //  ESCAPAR caracteres especiales aquí también
-    const escapedQuery = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escapedQuery, "i"); // Usar el query escapado
+    const nombreRegex = buildAccentInsensitiveRegex(q);
+    const skuRegex = new RegExp(escapeRegex(q), "i"); // Coincidencias directas para SKU
 
-    //console.log(" Query escapado para sugerencias:", escapedQuery);
+    //console.log(" Query escapado para sugerencias:", q);
 
     //  Buscar coincidencias en productos
     const productos = await Producto.find(
-      { $or: [{ nombre: regex }, { codigoSKU: regex }] },
+      { $or: [{ nombre: nombreRegex }, { codigoSKU: skuRegex }] },
       "nombre codigoSKU categorias"
     )
       .limit(8)
       .populate("categorias", "nombre");
 
     //  Buscar categorías
-    const categorias = await Categoria.find({ nombre: regex })
+    const categorias = await Categoria.find({ nombre: nombreRegex })
       .limit(5)
       .select("nombre");
 
@@ -317,7 +349,7 @@ export const buscarSugerencias = async (req, res) => {
     const sugerencias = [];
 
     productos.forEach((p) => {
-      if (regex.test(p.nombre)) {
+      if (nombreRegex.test(p.nombre)) {
         sugerencias.push({
           tipo: "producto",
           coincidencia: "nombre",
@@ -327,7 +359,7 @@ export const buscarSugerencias = async (req, res) => {
           categoria: p.categorias?.[0]?.nombre || null,
         });
       }
-      if (regex.test(p.codigoSKU)) {
+      if (skuRegex.test(p.codigoSKU)) {
         sugerencias.push({
           tipo: "producto",
           coincidencia: "sku",
@@ -382,5 +414,3 @@ export const obtenerProductosPorCategoria = async (req, res) => {
     res.status(500).json({ error: "Error del servidor" });
   }
 };
-
-
