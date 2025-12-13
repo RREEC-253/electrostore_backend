@@ -13,6 +13,7 @@ import DireccionRoutes from "./routes/DireccionRoutes.js";
 import CarritoRoutes from "./routes/CarritoRoutes.js";
 import paymentRoutes from "./routes/payments.js";
 import GananciasRoutes from "./routes/GananciasRoutes.js";
+import DashboardRoutes from "./routes/DashboardRoutes.js";
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.use("/api/direcciones", DireccionRoutes);
 app.use("/api/carrito", CarritoRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/ganancias", GananciasRoutes);
+app.use("/api/dashboard", DashboardRoutes);
 
 
 app.get("/", (req, res) => {
