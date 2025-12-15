@@ -8,6 +8,7 @@ import {
   actualizarDireccion,
   eliminarDireccion,
   marcarPrincipal,
+  listarZonasEnvio,
 } from "../controllers/DireccionController.js";
 
 const router = express.Router();
@@ -17,6 +18,9 @@ router.post("/", authMiddleware, crearDireccion);
 
 // Listar direcciones
 router.get("/", authMiddleware, listarDirecciones);
+
+// Zonas habilitadas para delivery
+router.get("/zonas/envio", authMiddleware, listarZonasEnvio);
 
 // Obtener direcci?n por ID
 router.get("/:id", authMiddleware, obtenerDireccion);

@@ -6,8 +6,8 @@ const estaEnZonaEnvio = (departamento, provincia) => {
   if (!departamento || !provincia) return false;
   if (!ZONAS_ENVIO || ZONAS_ENVIO.length === 0) return false;
 
-  const dep = departamento.toLowerCase().trim();
-  const prov = provincia.toLowerCase().trim();
+  const dep = (departamento || "").toLowerCase().trim();
+  const prov = (provincia || "").toLowerCase().trim();
 
   return ZONAS_ENVIO.some(
     (z) => z.departamento === dep && z.provincia === prov
@@ -33,7 +33,11 @@ const filtroPorId = (req) => {
   return { _id: req.params.id, usuarioId: req.usuario.id };
 };
 
-// Crear direcci?n
+export const listarZonasEnvio = (req, res) => {
+  res.json(ZONAS_ENVIO);
+};
+
+// Crear dirección
 export const crearDireccion = async (req, res) => {
   try {
     const data = { ...req.body, usuarioId: req.usuario.id };
@@ -68,26 +72,26 @@ export const listarDirecciones = async (req, res) => {
   }
 };
 
-// Obtener una direcci?n por ID
+// Obtener una dirección por ID
 export const obtenerDireccion = async (req, res) => {
   try {
     const filtro = filtroPorId(req);
     const dir = await Direccion.findOne(filtro);
     if (!dir)
-      return res.status(404).json({ message: "Direcci?n no encontrada" });
+      return res.status(404).json({ message: "Dirección no encontrada" });
     res.json(dir);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Actualizar direcci?n
+// Actualizar dirección
 export const actualizarDireccion = async (req, res) => {
   try {
     const filtro = filtroPorId(req);
     const direccion = await Direccion.findOne(filtro);
     if (!direccion) {
-      return res.status(404).json({ message: "Direcci?n no encontrada" });
+      return res.status(404).json({ message: "Dirección no encontrada" });
     }
 
     if (req.body.principal === true) {
@@ -115,14 +119,14 @@ export const actualizarDireccion = async (req, res) => {
   }
 };
 
-// Eliminar direcci?n
+// Eliminar dirección
 export const eliminarDireccion = async (req, res) => {
   try {
     const filtro = filtroPorId(req);
     const dir = await Direccion.findOneAndDelete(filtro);
     if (!dir)
-      return res.status(404).json({ message: "Direcci?n no encontrada" });
-    res.json({ message: "Direcci?n eliminada" });
+      return res.status(404).json({ message: "Dirección no encontrada" });
+    res.json({ message: "Dirección eliminada" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -138,7 +142,7 @@ export const marcarPrincipal = async (req, res) => {
 
     const existe = await Direccion.findOne(filtro);
     if (!existe)
-      return res.status(404).json({ message: "Direcci?n no encontrada" });
+      return res.status(404).json({ message: "Dirección no encontrada" });
 
     await Direccion.updateMany(
       { usuarioId: existe.usuarioId, principal: true },
