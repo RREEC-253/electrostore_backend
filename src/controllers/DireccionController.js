@@ -2,7 +2,6 @@
 import Direccion from "../models/Direccion.js";
 import { ZONAS_ENVIO } from "../config/config.js";
 
-
 const estaEnZonaEnvio = (departamento, provincia) => {
   if (!departamento || !provincia) return false;
   if (!ZONAS_ENVIO || ZONAS_ENVIO.length === 0) return false;
@@ -11,24 +10,36 @@ const estaEnZonaEnvio = (departamento, provincia) => {
   const prov = provincia.toLowerCase().trim();
 
   return ZONAS_ENVIO.some(
-    (z) =>
-      z.departamento === dep &&
-      z.provincia === prov
+    (z) => z.departamento === dep && z.provincia === prov
   );
 };
 
-// Crear dirección
+const esAdmin = (req) => req.usuario?.rol === "admin";
+
+const filtroPorUsuario = (req) => {
+  if (esAdmin(req)) {
+    if (req.query?.usuarioId) {
+      return { usuarioId: req.query.usuarioId };
+    }
+    return {};
+  }
+  return { usuarioId: req.usuario.id };
+};
+
+const filtroPorId = (req) => {
+  if (esAdmin(req)) {
+    return { _id: req.params.id };
+  }
+  return { _id: req.params.id, usuarioId: req.usuario.id };
+};
+
+// Crear direcci?n
 export const crearDireccion = async (req, res) => {
   try {
     const data = { ...req.body, usuarioId: req.usuario.id };
 
-    // Calcular si está en zona de envío
-    data.enZonaEnvio = estaEnZonaEnvio(
-      data.departamento,
-      data.provincia
-    );
+    data.enZonaEnvio = estaEnZonaEnvio(data.departamento, data.provincia);
 
-    // Si marcan como principal, desmarcamos otras
     if (data.principal === true) {
       await Direccion.updateMany(
         { usuarioId: req.usuario.id, principal: true },
@@ -43,93 +54,94 @@ export const crearDireccion = async (req, res) => {
   }
 };
 
-// Listar direcciones del usuario autenticado
+// Listar direcciones del usuario autenticado (o todas si es admin)
 export const listarDirecciones = async (req, res) => {
   try {
-    const direcciones = await Direccion.find({ usuarioId: req.usuario.id })
-      .sort({ principal: -1, createdAt: -1 });
+    const filtro = filtroPorUsuario(req);
+    const direcciones = await Direccion.find(filtro).sort({
+      principal: -1,
+      createdAt: -1,
+    });
     res.json(direcciones);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Obtener una dirección por ID (del usuario)
+// Obtener una direcci?n por ID
 export const obtenerDireccion = async (req, res) => {
   try {
-    const dir = await Direccion.findOne({
-      _id: req.params.id,
-      usuarioId: req.usuario.id,
-    });
-    if (!dir) return res.status(404).json({ message: "Dirección no encontrada" });
+    const filtro = filtroPorId(req);
+    const dir = await Direccion.findOne(filtro);
+    if (!dir)
+      return res.status(404).json({ message: "Direcci?n no encontrada" });
     res.json(dir);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Actualizar dirección
+// Actualizar direcci?n
 export const actualizarDireccion = async (req, res) => {
   try {
+    const filtro = filtroPorId(req);
+    const direccion = await Direccion.findOne(filtro);
+    if (!direccion) {
+      return res.status(404).json({ message: "Direcci?n no encontrada" });
+    }
+
     if (req.body.principal === true) {
       await Direccion.updateMany(
-        { usuarioId: req.usuario.id, principal: true },
+        { usuarioId: direccion.usuarioId, principal: true },
         { $set: { principal: false } }
       );
     }
 
-    const updateData = { ...req.body };
+    Object.assign(direccion, req.body);
 
-    // Si cambian departamento/provincia, recalculamos enZonaEnvio
-    if (updateData.departamento || updateData.provincia) {
-      const dep =
-        updateData.departamento ?? req.body.departamento;
-      const prov =
-        updateData.provincia ?? req.body.provincia;
-      updateData.enZonaEnvio = estaEnZonaEnvio(dep, prov);
+    if (
+      req.body.departamento !== undefined ||
+      req.body.provincia !== undefined
+    ) {
+      const dep = req.body.departamento ?? direccion.departamento;
+      const prov = req.body.provincia ?? direccion.provincia;
+      direccion.enZonaEnvio = estaEnZonaEnvio(dep, prov);
     }
 
-    const dir = await Direccion.findOneAndUpdate(
-      { _id: req.params.id, usuarioId: req.usuario.id },
-      updateData,
-      { new: true }
-    );
-
-    if (!dir) {
-      return res.status(404).json({ message: "Dirección no encontrada" });
-    }
-    res.json(dir);
+    const guardada = await direccion.save();
+    res.json(guardada);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
-
-// Eliminar dirección
+// Eliminar direcci?n
 export const eliminarDireccion = async (req, res) => {
   try {
-    const dir = await Direccion.findOneAndDelete({
-      _id: req.params.id,
-      usuarioId: req.usuario.id,
-    });
-    if (!dir) return res.status(404).json({ message: "Dirección no encontrada" });
-    res.json({ message: "Dirección eliminada" });
+    const filtro = filtroPorId(req);
+    const dir = await Direccion.findOneAndDelete(filtro);
+    if (!dir)
+      return res.status(404).json({ message: "Direcci?n no encontrada" });
+    res.json({ message: "Direcci?n eliminada" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Marcar como principal (y desmarcar otras)
+// Marcar como principal
 export const marcarPrincipal = async (req, res) => {
   try {
     const { id } = req.params;
+    const filtro = esAdmin(req)
+      ? { _id: id }
+      : { _id: id, usuarioId: req.usuario.id };
 
-    // Verificamos que la dirección exista y pertenezca al usuario
-    const existe = await Direccion.findOne({ _id: id, usuarioId: req.usuario.id });
-    if (!existe) return res.status(404).json({ message: "Dirección no encontrada" });
+    const existe = await Direccion.findOne(filtro);
+    if (!existe)
+      return res.status(404).json({ message: "Direcci?n no encontrada" });
 
     await Direccion.updateMany(
-      { usuarioId: req.usuario.id, principal: true },
+      { usuarioId: existe.usuarioId, principal: true },
       { $set: { principal: false } }
     );
 
@@ -141,5 +153,3 @@ export const marcarPrincipal = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-

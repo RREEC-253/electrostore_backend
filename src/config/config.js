@@ -1,5 +1,8 @@
 // src/config/config.js
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // Generar Access Token (vida corta)
 export const generarAccessToken = (payload) => {

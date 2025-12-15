@@ -1,6 +1,6 @@
 // src/routes/DireccionRoutes.js
 import express from "express";
-import { authMiddleware, authorizeRoles } from "../middleware/authMiddleware.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 import {
   crearDireccion,
   listarDirecciones,
@@ -12,53 +12,22 @@ import {
 
 const router = express.Router();
 
-// 📌 Crear dirección (usuario autenticado)
+// Crear direcci?n (usuario autenticado)
 router.post("/", authMiddleware, crearDireccion);
 
-// 📌 Listar direcciones
-router.get("/", authMiddleware, (req, res, next) => {
-  if (req.usuario.rol === "admin") {
-    // admin ve todas
-    return listarDirecciones(req, res, next);
-  } else {
-    // cliente ve solo las suyas
-    req.query.usuarioId = req.usuario.id;
-    return listarDirecciones(req, res, next);
-  }
-});
+// Listar direcciones
+router.get("/", authMiddleware, listarDirecciones);
 
-// 📌 Obtener dirección por ID
-// - Admin puede ver cualquiera
-// - Cliente solo sus direcciones
-router.get("/:id", authMiddleware, (req, res, next) => {
-  if (req.usuario.rol !== "admin" && req.usuario.id !== req.params.usuarioId) {
-    return res.status(403).json({ message: "No tienes permisos para ver esta dirección" });
-  }
-  next();
-}, obtenerDireccion);
+// Obtener direcci?n por ID
+router.get("/:id", authMiddleware, obtenerDireccion);
 
-// 📌 Actualizar dirección (dueño o admin)
-router.put("/:id", authMiddleware, (req, res, next) => {
-  if (req.usuario.rol !== "admin" && req.usuario.id !== req.body.usuarioId) {
-    return res.status(403).json({ message: "No tienes permisos para actualizar esta dirección" });
-  }
-  next();
-}, actualizarDireccion);
+// Actualizar direcci?n
+router.put("/:id", authMiddleware, actualizarDireccion);
 
-// 📌 Eliminar dirección (dueño o admin)
-router.delete("/:id", authMiddleware, (req, res, next) => {
-  if (req.usuario.rol !== "admin" && req.usuario.id !== req.body.usuarioId) {
-    return res.status(403).json({ message: "No tienes permisos para eliminar esta dirección" });
-  }
-  next();
-}, eliminarDireccion);
+// Eliminar direcci?n
+router.delete("/:id", authMiddleware, eliminarDireccion);
 
-// 📌 Marcar como principal (solo dueño o admin)
-router.patch("/:id/principal", authMiddleware, (req, res, next) => {
-  if (req.usuario.rol !== "admin" && req.usuario.id !== req.body.usuarioId) {
-    return res.status(403).json({ message: "No tienes permisos para modificar esta dirección" });
-  }
-  next();
-}, marcarPrincipal);
+// Marcar como principal
+router.patch("/:id/principal", authMiddleware, marcarPrincipal);
 
 export default router;
