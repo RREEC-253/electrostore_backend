@@ -36,14 +36,27 @@ export const verificarRefreshToken = (token) => {
   }
 };
 
-export const ZONAS_ENVIO = (process.env.DELIVERY_ZONAS || "")
-  .split(",")
+const normalizarTexto = (texto = "") =>
+  texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const rawZonas = process.env.DELIVERY_ZONAS || "";
+
+export const ZONAS_ENVIO = rawZonas
+  .split(/[,;\n]/)
   .map((z) => z.trim())
   .filter((z) => z.length > 0)
   .map((z) => {
-    const [dep, prov] = z.split("|").map((p) => (p || "").trim().toLowerCase());
+    const [depRaw, provRaw] = z.split("|").map((p) => (p || "").trim());
+    const dep = normalizarTexto(depRaw);
+    const prov = normalizarTexto(provRaw);
     return {
       departamento: dep,
       provincia: prov,
+      labelDepartamento: depRaw || "",
+      labelProvincia: provRaw || "",
     };
   });
