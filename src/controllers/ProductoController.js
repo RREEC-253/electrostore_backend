@@ -2,7 +2,7 @@
 import Producto from "../models/Producto.js";
 import Categoria from "../models/Categoria.js";
 
-// 🛠️ Helper: calcula el precio final visible al cliente
+//  Helper: calcula el precio final visible al cliente
 const calcularPrecioFinal = (producto) => {
   if (producto.oferta && producto.porcentajeOferta > 0 && producto.precioOferta) {
     return producto.precioOferta;
@@ -10,7 +10,7 @@ const calcularPrecioFinal = (producto) => {
   return producto.precioVenta;
 };
 
-// Helpers para bÇ§squedas tolerantes a tildes
+// Helpers para busquedas tolerantes a tildes
 const accentGroups = {
   a: "aáàäâãå",
   e: "eéèëê",
@@ -55,7 +55,15 @@ export const crearProducto = async (req, res) => {
 
     res.status(201).json(productoConPrecio);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("Error al crear producto:", error);
+    if (error.code === 11000) {
+      return res
+        .status(400)
+        .json({ message: "El código SKU ya está registrado." });
+    }
+    res
+      .status(400)
+      .json({ message: error.message || "No se pudo crear el producto" });
   }
 };
 
@@ -153,7 +161,7 @@ export const eliminarProducto = async (req, res) => {
   }
 };
 
-// 📌 Listar solo productos con oferta activa
+//  Listar solo productos con oferta activa
 export const productosOfertas = async (req, res) => {
   try {
     const productos = await Producto.find({
@@ -389,7 +397,7 @@ export const buscarSugerencias = async (req, res) => {
   }
 };
 
-// 🆕 Obtener productos por ID de categoría
+//  Obtener productos por ID de categoría
 export const obtenerProductosPorCategoria = async (req, res) => {
   try {
     const { idCategoria } = req.params;
@@ -402,7 +410,7 @@ export const obtenerProductosPorCategoria = async (req, res) => {
       .populate("categorias", "nombre") // opcional
       .lean();
 
-    // ✅ Calcular precioFinal (como en destacados)
+    //  Calcular precioFinal (como en destacados)
     const productosConPrecioFinal = productos.map((p) => ({
       ...p,
       precioFinal: p.oferta && p.precioOferta ? p.precioOferta : p.precioVenta,
